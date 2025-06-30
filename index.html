@@ -360,10 +360,11 @@
         pdfContainer.classList.remove("hidden");
         pdfContainer.innerHTML = `
           <h1 style="text-align:center">Wstępna wycena kuchni
-          <p>Jeżeli masz jakiekolwiek pytania to zadzwoń:
+          <p>Jeżeli masz jakiekolwiek pytania prosimy o kontakt:/,p>
           </h1>
           <p>Telefon: <strong>+48 696404931</strong></p>
-          <p style="font-style:italic;"><small>Wstępna wycena Twojej kuchni.</small></p>
+          <p>Adres email: <strong>sqrstudio@sqrstudio.pl</p>
+          <p style="font-style:italic;"><small>Poniżej szczegółowa wycena Twojej kuchni. </small></p>
           <hr/>
           <h2>Wybrane szafki</h2>
           <ul>${cabinets.map(c=>`<li>${c.name} — ilość: ${c.qty}</li>`).join("")}</ul>
