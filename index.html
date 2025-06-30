@@ -6,18 +6,7 @@
   <title>Wycena kuchni</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-  @media print {
-    body * { visibility: hidden; }
-    #pdfContent, #pdfContent * { visibility: visible; }
-    #pdfContent {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%;
-    }
-  }
-</style>
-</head>
+ </head>
 <body class="bg-gray-100 text-gray-800">
   <div id="app" class="p-6 max-w-3xl mx-auto bg-white shadow rounded space-y-6">
     <h1 class="text-3xl font-bold">Wycena kuchni ( ver 2.1 beta) </h1>
@@ -104,9 +93,9 @@
       <button id="resetBtn" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
         Wyczyść wszystko
       </button>
-      <button id="printBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
-        Drukuj wycenę
-      </button>
+     // <button id="printBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+     //   Drukuj wycenę
+     // </button>
       <button id="pdfBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded">
         📄 Pobierz wycenę (PDF)
       </button>
@@ -364,7 +353,7 @@
         ledChk.checked=lowerChk.checked=islandChk.checked=false;
         renderList(); renderSummary();
       };
-      printBtn.onclick = () => {
+     /* printBtn.onclick = () => {
           // 1) wypełnij ten sam kontener, którego używamy do PDF
           fillPdfContainer();
         
@@ -377,7 +366,7 @@
         
           // 4) po powrocie z wydruku znowu go ukryj
           pdfContainer.classList.add("hidden");
-        };
+        };*/
       pdfBtn.onclick = ()=>{
         const d = getSummaryData();
         pdfContainer.classList.remove("hidden");
