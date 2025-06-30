@@ -8,20 +8,11 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
   @media print {
-    /* Ukryj całe drzewo DOM... */
-    body * {
-      visibility: hidden;
-    }
-    /* ...poza tym kontenerem, który chcesz drukować */
-    #pdfContent,
-    #pdfContent * {
-      visibility: visible;
-    }
-    /* Wyciągnij go na samą górę strony */
+    body * { visibility: hidden; }
+    #pdfContent, #pdfContent * { visibility: visible; }
     #pdfContent {
       position: absolute;
-      top: 0;
-      left: 0;
+      top: 0; left: 0;
       width: 100%;
     }
   }
@@ -374,13 +365,19 @@
         renderList(); renderSummary();
       };
       printBtn.onclick = () => {
-      // 1) Jeżeli drukujesz ukrytą zawartość PDF, najpierw ją odsłoń:
-      pdfContainer.classList.remove("hidden");
-      // 2) Wywołaj drukowanie
-      window.print();
-      // 3) Po powrocie z okna drukowania ukryj ponownie:
-      pdfContainer.classList.add("hidden");
-};
+          // 1) wypełnij ten sam kontener, którego używamy do PDF
+          fillPdfContainer();
+        
+          // 2) odsłoń go na stronie
+          pdfContainer.classList.remove("hidden");
+        
+          // 3) wywołaj dialog drukowania — dzięki @media print
+          //    zostanie pokazany tylko #pdfContent
+          window.print();
+        
+          // 4) po powrocie z wydruku znowu go ukryj
+          pdfContainer.classList.add("hidden");
+        };
       pdfBtn.onclick = ()=>{
         const d = getSummaryData();
         pdfContainer.classList.remove("hidden");
