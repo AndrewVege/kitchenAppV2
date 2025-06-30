@@ -121,7 +121,7 @@
           zlewClassic:  { name: "Pod zlew z drzwiczkami",      price: 900, length:0.6 },
           szuflady:     { name: "Szafka z 3 szufladami",       price:1900, length:0.6 },
           "3-szuflady": { name: "Pod płytę z 3 szufladami",    price:1900, length:0.6 },
-          piekarnik:    { name: "Szafka pod zabudowę piekarnika", price:1100, length:0.6 },
+          piekarnik:    { name: "Pod zabudowę piekarnika", price:1100, length:0.6 },
           narozna:      { name: "Narożna z półką",             price:1050, length:1.0 },
           magicCorner:  { name: "Narożna z Magic Corner",      price:1900, length:1.0 }
         }
@@ -141,7 +141,8 @@
         items: {
           slupek:             { name: "Słupek z piekarnikiem",         price:2200 },
           mikrofalapiekarnik: { name: "Słupek z mikrofalą i piekarn.", price:2600 },
-          lodowka:            { name: "Słupek z lodówką w zabudowie", price:2100 }
+          lodowka:            { name: "Słupek z lodówką w zabudowie", price:2100 },
+          cargo:              { name: "Słupek z cargo", price:2000 }
         }
       },
       wyspa: {
@@ -267,7 +268,7 @@
         listEl.append(li);
       }
       const ovenQty = cabinets.reduce((s,c)=>
-        ["mikrofalapiekarnik","slupek"].includes(c.key)?s+c.qty:s
+        ["mikrofalapiekarnik","slupek","piekarnik"].includes(c.key)?s+c.qty:s
       ,0);
       if(ovenQty>1){
         const li = document.createElement("li");
