@@ -353,14 +353,20 @@
         ledChk.checked=lowerChk.checked=islandChk.checked=false;
         renderList(); renderSummary();
       };
-      printBtn.onclick = ()=>window.print();
-
+      printBtn.onclick = () => {
+      // 1) Jeżeli drukujesz ukrytą zawartość PDF, najpierw ją odsłoń:
+      pdfContainer.classList.remove("hidden");
+      // 2) Wywołaj drukowanie
+      window.print();
+      // 3) Po powrocie z okna drukowania ukryj ponownie:
+      pdfContainer.classList.add("hidden");
+};
       pdfBtn.onclick = ()=>{
         const d = getSummaryData();
         pdfContainer.classList.remove("hidden");
         pdfContainer.innerHTML = `
           <h1 style="text-align:center">Wstępna wycena kuchni
-          <p>Jeżeli masz jakiekolwiek pytania prosimy o kontakt:/,p>
+          <p>Jeżeli masz jakiekolwiek pytania prosimy o kontakt:</p>
           </h1>
           <p>Telefon: <strong>+48 696404931</strong></p>
           <p>Adres email: <strong>sqrstudio@sqrstudio.pl</p>
