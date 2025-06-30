@@ -6,6 +6,26 @@
   <title>Wycena kuchni</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+  @media print {
+    /* Ukryj całe drzewo DOM... */
+    body * {
+      visibility: hidden;
+    }
+    /* ...poza tym kontenerem, który chcesz drukować */
+    #pdfContent,
+    #pdfContent * {
+      visibility: visible;
+    }
+    /* Wyciągnij go na samą górę strony */
+    #pdfContent {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+    }
+  }
+</style>
 </head>
 <body class="bg-gray-100 text-gray-800">
   <div id="app" class="p-6 max-w-3xl mx-auto bg-white shadow rounded space-y-6">
