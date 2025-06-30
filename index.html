@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Wycena kuchni</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800">
+  <div id="app" class="p-6 max-w-3xl mx-auto bg-white shadow rounded space-y-6">
+    <h1 class="text-3xl font-bold">Wycena kuchni</h1>
+
+    <!-- Instrukcja obsługi -->
+    <div class="mb-6 p-4 bg-blue-50 border-l-4 border-blue-400 text-blue-700 rounded">
+      <h2 class="text-lg font-semibold mb-2">Jak korzystać z aplikacji</h2>
+      <ol class="list-decimal list-inside space-y-1 text-sm">
+        <li>W sekcji <strong>Wybór grupy i szafki</strong> wybierz kategorię mebli, typ szafki i kliknij <em>Dodaj szafkę</em>.</li>
+        <li>Powtórz krok 1 dla każdej szafki, którą chcesz wycenić.</li>
+        <li>W <strong>Dodatkowych opcjach</strong> wybierz rodzaj frontów, blatu oraz zaznacz ewentualne elementy: oświetlenie LED, bok dolny schodzący, boki wyspy.</li>
+        <li>Sekcja <strong>Podsumowanie</strong> wyliczy automatycznie długości, koszty szafek, frontów, blatów, montażu, transportu i boki.</li>
+        <li>Możesz <strong>wydrukować wycenę</strong> lub <strong>zresetować</strong> wszystkie pola jednym kliknięciem.</li>
+      </ol>
+    </div>
+
+    <!-- Wybór grupy i szafki -->
+    <div class="flex flex-wrap gap-4 items-end">
+      <div class="flex-1">
+        <label for="groupSelect" class="block mb-1">Grupa</label>
+        <select id="groupSelect" class="w-full border rounded p-2">
+          <option value="" disabled selected>Wybierz grupę</option>
+        </select>
+      </div>
+      <div class="flex-1">
+        <label for="itemSelect" class="block mb-1">Szafka</label>
+        <select id="itemSelect" class="w-full border rounded p-2">
+          <option value="" disabled selected>Wybierz szafkę</option>
+        </select>
+      </div>
+      <button id="addBtn" class="bg-blue-600 text-white px-4 py-2 rounded">
+        Dodaj szafkę
+      </button>
+    </div>
+
+    <!-- Lista dodanych szafek -->
+    <ul id="cabinetList" class="space-y-2"></ul>
+
+    <!-- Opcje frontów i blatów -->
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label for="frontSelect" class="block mb-1">Rodzaj frontów</label>
+        <select id="frontSelect" class="w-full border rounded p-2">
+          <option value="laminowane">Laminowane</option>
+          <option value="lakierowane">Lakierowane</option>
+          <option value="frezowane">Frezowane</option>
+        </select>
+      </div>
+      <div>
+        <label for="blatSelect" class="block mb-1">Rodzaj blatu</label>
+        <select id="blatSelect" class="w-full border rounded p-2">
+          <option value="laminat">Laminat</option>
+          <option value="kompaktowy">Kompaktowy</option>
+          <option value="kamien">Kamień</option>
+          <option value="drewniany">Drewniany</option>
+          <option value="none">Bez blatu</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Checkboxy -->
+    <div class="flex flex-wrap gap-4">
+      <label class="inline-flex items-center">
+        <input id="ledChk" type="checkbox" class="mr-2"/>
+        Oświetlenie LED
+      </label>
+      <label class="inline-flex items-center">
+        <input id="lowerChk" type="checkbox" class="mr-2"/>
+        Bok dolny schodzący do podłogi
+      </label>
+      <label class="inline-flex items-center">
+        <input id="islandChk" type="checkbox" class="mr-2"/>
+        Boki schodzące (wyspa)
+      </label>
+    </div>
+
+    <!-- Podsumowanie -->
+    <div id="summary" class="mt-6 p-4 border rounded-md bg-gray-50 space-y-1">
+      <!-- tutaj wstawia JS -->
+    </div>
+
+    <!-- Przyciski akcji -->
+    <div class="flex gap-4">
+      <button id="resetBtn" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
+        Wyczyść wszystko
+      </button>
+      <button id="printBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+        Drukuj wycenę
+      </button>
+      <button id="pdfBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded">
+        📄 Pobierz wycenę (PDF)
+      </button>
+    </div>
+  </div>
+
+  <!-- Ukryty kontener PDF -->
+  <div id="pdfContent" class="hidden p-6 bg-white text-black" style="width:21cm;"></div>
+
+  <!-- Skrypt aplikacji -->
+  <script>
+    // Stałe i dane
+    const LOWER_DEPTH    = 0.6, LOWER_HEIGHT   = 0.72;
+    const UPPER_DEPTH    = 0.3, UPPER_HEIGHT   = 0.6;
+    const COLUMN_VOLUME  = 0.8;
+    const MONTAGE_PERCENT= 0.15, MONTAGE_MIN    = 1500;
+    const TRANSPORT_BASE = 500, TRANSPORT_FREE = 2, TRANSPORT_RATE = 100;
+    const CABINET_GROUPS = {
+      dolne: {
+        label: "Szafki dolne",
+        items: {
+          zlew:         { name: "Pod zlew z szufladą",        price:1100, length:0.6 },
+          zlewClassic:  { name: "Pod zlew z drzwiczkami",      price: 900, length:0.6 },
+          szuflady:     { name: "Szafka z 3 szufladami",       price:1900, length:0.6 },
+          "3-szuflady": { name: "Pod płytę z 3 szufladami",    price:1900, length:0.6 },
+          piekarnik:    { name: "Szafka pod zabudowę piekarnika", price:1100, length:0.6 },
+          narozna:      { name: "Narożna z półką",             price:1050, length:1.0 },
+          magicCorner:  { name: "Narożna z Magic Corner",      price:1900, length:1.0 }
+        }
+      },
+      wiszace: {
+        label: "Szafki wiszące",
+        items: {
+          "1-drzwiowa": { name: "Górna 1-drzwiowa",    price:350 },
+          "2-drzwiowa": { name: "Górna 2-drzwiowa",    price:500 },
+          klapowa:      { name: "Klapowa (AVENTOS)",   price:750 },
+          naroznaGorna: { name: "Górna narożna",       price:700 },
+          wyciag:       { name: "Szafka pod wyciąg",   price:400 }
+        }
+      },
+      slupki: {
+        label: "Słupki / wysoka zabudowa",
+        items: {
+          slupek:             { name: "Słupek z piekarnikiem",         price:2200 },
+          mikrofalapiekarnik: { name: "Słupek z mikrofalą i piekarn.", price:2600 },
+          lodowka:            { name: "Słupek z lodówką w zabudowie", price:2100 }
+        }
+      },
+      wyspa: {
+        label: "Szafki w wyspie",
+        items: {
+          "2-szuflady":     { name: "Wyspa – 2 szuflady",     price:950, length:0.6 },
+          "szafka-drzwiowa":{ name: "Wyspa – szafka drzwiowa", price:750, length:0.6 }
+        }
+      }
+    };
+    const FRONT_MULTIPLIERS = { laminowane:1, lakierowane:1.2, frezowane:1.35 };
+    const BLAT_COSTS        = { laminat:250, kompaktowy:600, kamien:1200, drewniany:1200, none:0 };
+    const CUTOUT_COSTS_HIGH = { zlew:200, "3-szuflady":150 };
+    const CUTOUT_COSTS_LOW  = { zlew:100, "3-szuflady":80 };
+
+    // Elementy DOM
+    const groupSelect  = document.getElementById("groupSelect");
+    const itemSelect   = document.getElementById("itemSelect");
+    const addBtn       = document.getElementById("addBtn");
+    const listEl       = document.getElementById("cabinetList");
+    const frontSel     = document.getElementById("frontSelect");
+    const blatSel      = document.getElementById("blatSelect");
+    const ledChk       = document.getElementById("ledChk");
+    const lowerChk     = document.getElementById("lowerChk");
+    const islandChk    = document.getElementById("islandChk");
+    const summaryEl    = document.getElementById("summary");
+    const resetBtn     = document.getElementById("resetBtn");
+    const printBtn     = document.getElementById("printBtn");
+    const pdfBtn       = document.getElementById("pdfBtn");
+    const pdfContainer = document.getElementById("pdfContent");
+    let cabinets       = [];
+
+    // Wypełnianie grup i typów szafek
+    function populateGroups(){
+      groupSelect.innerHTML = '<option value="" disabled selected>Wybierz grupę</option>';
+      Object.entries(CABINET_GROUPS).forEach(([key,val])=>{
+        const opt = document.createElement("option");
+        opt.value = key; opt.textContent = val.label;
+        groupSelect.append(opt);
+      });
+      populateItems();
+    }
+    function populateItems(){
+      itemSelect.innerHTML = '<option value="" disabled selected>Wybierz szafkę</option>';
+      const grp = groupSelect.value;
+      if(!grp) return;
+      Object.entries(CABINET_GROUPS[grp].items).forEach(([key,it])=>{
+        const opt = document.createElement("option");
+        opt.value = key; opt.textContent = it.name;
+        itemSelect.append(opt);
+      });
+    }
+
+    // Funkcja obliczająca wszystkie koszty
+    function getSummaryData(){
+      const totalLen = cabinets.reduce((s,c)=>s+(c.length||0)*c.qty,0);
+      const wyspaLen = cabinets.filter(c=>c.group==="wyspa")
+                               .reduce((s,c)=>s+(c.length||0)*c.qty,0);
+      const pozLen   = totalLen - wyspaLen;
+      const costSzaf   = cabinets.reduce((s,c)=>s+c.price*c.qty,0);
+      const frontExtra = costSzaf*(FRONT_MULTIPLIERS[frontSel.value]-1);
+
+      let costBlat;
+      if(blatSel.value==="kompaktowy"){
+        const needed     = pozLen + wyspaLen;
+        const slabsCount = Math.ceil(needed / 4.10);
+        costBlat = slabsCount * 2500;
+      } else {
+        const unit = BLAT_COSTS[blatSel.value]||0;
+        costBlat = pozLen*unit + wyspaLen*unit*(1000/600);
+      }
+
+      let cutoutCost = 0;
+      if(blatSel.value!=="none"){
+        const isHigh   = ["kamien","kompaktowy"].includes(blatSel.value);
+        const priceMap = isHigh?CUTOUT_COSTS_HIGH:CUTOUT_COSTS_LOW;
+        cutoutCost = cabinets.reduce((s,c)=>s+(priceMap[c.key]||0)*c.qty,0);
+      }
+
+      const ledQty = cabinets.filter(c=>c.group==="wiszace")
+                             .reduce((s,c)=>s+c.qty,0);
+      const costLed = ledChk.checked ? ledQty*100 : 0;
+
+      const panelUnit  = BLAT_COSTS[blatSel.value]||0;
+      const costLower  = lowerChk.checked  ? panelUnit : 0;
+      const costIsland = islandChk.checked ? panelUnit*2  : 0;
+
+      const totalVol = cabinets.reduce((s,c)=>{
+        if(c.group==="dolne"||c.group==="wyspa")
+          return s + (c.length||0)*LOWER_DEPTH*LOWER_HEIGHT*c.qty;
+        if(c.group==="wiszace")
+          return s + (c.length||0)*UPPER_DEPTH*UPPER_HEIGHT*c.qty;
+        if(c.group==="slupki")
+          return s + COLUMN_VOLUME*c.qty;
+        return s;
+      },0);
+      const extraVol      = Math.max(0, totalVol-TRANSPORT_FREE);
+      const transportCost = TRANSPORT_BASE + extraVol*TRANSPORT_RATE;
+
+      const montBase = costSzaf * MONTAGE_PERCENT;
+      const costMont = montBase < MONTAGE_MIN ? MONTAGE_MIN : montBase;
+
+      const totalBase = costSzaf + frontExtra + costBlat
+                      + costLed + transportCost + costMont
+                      + costLower + costIsland;
+      const total     = totalBase + cutoutCost;
+
+      return { pozLen, wyspaLen, costSzaf, frontExtra, costBlat,
+               cutoutCost, ledQty, costLed, transportCost,
+               costLower, costIsland, costMont, totalBase, total };
+    }
+
+    // Render listy szafek z ostrzeżeniami
+    function renderList(){
+      listEl.innerHTML = "";
+      const sinkQty = cabinets.reduce((s,c)=>
+        ["zlew","zlewClassic"].includes(c.key)?s+c.qty:s
+      ,0);
+      if(sinkQty>1){
+        const li = document.createElement("li");
+        li.className="text-yellow-700 italic px-2";
+        li.textContent="⚠ Łączna ilość szafek pod zlew > 1";
+        listEl.append(li);
+      }
+      const ovenQty = cabinets.reduce((s,c)=>
+        ["mikrofalapiekarnik","slupek"].includes(c.key)?s+c.qty:s
+      ,0);
+      if(ovenQty>1){
+        const li = document.createElement("li");
+        li.className="text-yellow-700 italic px-2";
+        li.textContent="⚠ Łączna ilość słupków piekarnik/mikrofalapiek. > 1";
+        listEl.append(li);
+      }
+      if(cabinets.length===0){
+        const li = document.createElement("li");
+        li.className="text-gray-500 italic";
+        li.textContent="Brak dodanych szafek";
+        listEl.append(li);
+        return;
+      }
+      cabinets.forEach((c,i)=>{
+        const li = document.createElement("li");
+        li.className="flex items-center gap-4";
+        const nm = document.createElement("span");
+        nm.className="flex-1"; nm.textContent=c.name;
+        const qt = document.createElement("input");
+        qt.type="number"; qt.min=1; qt.value=c.qty;
+        qt.className="w-16 text-center border rounded p-1";
+        qt.onchange = e=>{
+          let v=parseInt(e.target.value,10);
+          if(!v||v<1) v=1;
+          c.qty=v; e.target.value=v;
+          renderSummary(); renderList();
+        };
+        const bt = document.createElement("button");
+        bt.className="text-red-600 hover:text-red-800";
+        bt.textContent="Usuń";
+        bt.onclick=()=>{
+          cabinets.splice(i,1);
+          renderSummary(); renderList();
+        };
+        li.append(nm,qt,bt);
+        listEl.append(li);
+      });
+    }
+
+    // Render podsumowania
+    function renderSummary(){
+      const d = getSummaryData();
+      summaryEl.innerHTML = `
+        <p>Długość blatów (pozostała): <strong>${d.pozLen.toFixed(2)} m</strong></p>
+        <p>Długość blatów (wyspa):   <strong>${d.wyspaLen.toFixed(2)} m</strong></p>
+        <p>Koszt szafek:             <strong>${d.costSzaf.toFixed(2)} zł</strong></p>
+        <p>Dopłata za fronty:        <strong>${d.frontExtra.toFixed(2)} zł</strong></p>
+        <p>Koszt blatów:             <strong>${d.costBlat.toFixed(2)} zł</strong></p>
+        ${d.cutoutCost>0?`<p>Koszt wycięć:           <strong>${d.cutoutCost.toFixed(2)} zł</strong></p>`:""}
+        <p>Koszt LED (${d.ledQty} szt): <strong>${d.costLed.toFixed(2)} zł</strong></p>
+        <p>Transport:                <strong>${d.transportCost.toFixed(2)} zł</strong></p>
+        <p>Montaż:                   <strong>${d.costMont.toFixed(2)} zł</strong></p>
+        <p>Bok dolny:                <strong>${d.costLower.toFixed(2)} zł</strong></p>
+        <p>Boki wyspy:               <strong>${d.costIsland.toFixed(2)} zł</strong></p>
+        <hr class="my-2"/>
+        <p class="text-lg font-bold">Razem: ${d.total.toFixed(2)} zł</p>
+      `;
+    }
+
+    // Inicjalizacja i eventy
+    document.addEventListener("DOMContentLoaded", ()=>{
+      populateGroups(); renderList(); renderSummary();
+
+      addBtn.onclick = ()=>{
+        const key = itemSelect.value; if(!key) return;
+        const item = CABINET_GROUPS[groupSelect.value].items[key];
+        cabinets.push({ key, ...item, group:groupSelect.value, qty:1 });
+        renderList(); renderSummary();
+      };
+      groupSelect.onchange = populateItems;
+      [frontSel,blatSel,ledChk,lowerChk,islandChk]
+        .forEach(el=>el.onchange=renderSummary);
+
+      resetBtn.onclick = ()=>{
+        cabinets=[];
+        groupSelect.value="";
+        populateItems();
+        frontSel.value="laminowane";
+        blatSel.value="laminat";
+        ledChk.checked=lowerChk.checked=islandChk.checked=false;
+        renderList(); renderSummary();
+      };
+      printBtn.onclick = ()=>window.print();
+
+      pdfBtn.onclick = ()=>{
+        const d = getSummaryData();
+        pdfContainer.classList.remove("hidden");
+        pdfContainer.innerHTML = `
+          <h1 style="text-align:center">Wstępna wycena kuchni</h1>
+          <p>Telefon: <strong>+48 123 456 789</strong></p>
+          <p style="font-style:italic;"><small>Wstępna wycena – orientacyjne koszty.</small></p>
+          <hr/>
+          <h2>Wybrane szafki</h2>
+          <ul>${cabinets.map(c=>`<li>${c.name} — ilość: ${c.qty}</li>`).join("")}</ul>
+          <h2>Tabela kosztów</h2>
+          <table border="1" cellpadding="5" cellspacing="0" style="width:100%;border-collapse:collapse">
+            <thead><tr><th align="left">Pozycja</th><th align="right">Kwota (zł)</th></tr></thead>
+            <tbody>
+              <tr><td>Koszt szafek</td><td align="right">${d.costSzaf.toFixed(2)}</td></tr>
+              <tr><td>Dopłata fronty</td><td align="right">${d.frontExtra.toFixed(2)}</td></tr>
+              <tr><td>Koszt blatów</td><td align="right">${d.costBlat.toFixed(2)}</td></tr>
+              ${d.cutoutCost>0?`<tr><td>Koszt wycięć</td><td align="right">${d.cutoutCost.toFixed(2)}</td></tr>`:""}
+              <tr><td>LED</td><td align="right">${d.costLed.toFixed(2)}</td></tr>
+              <tr><td>Transport</td><td align="right">${d.transportCost.toFixed(2)}</td></tr>
+              <tr><td>Montaż</td><td align="right">${d.costMont.toFixed(2)}</td></tr>
+              <tr><td>Bok dolny</td><td align="right">${d.costLower.toFixed(2)}</td></tr>
+              <tr><td>Boki wyspy</td><td align="right">${d.costIsland.toFixed(2)}</td></tr>
+            </tbody>
+            <tfoot><tr><th align="left">Razem</th><th align="right">${d.total.toFixed(2)}</th></tr></tfoot>
+          </table>`;
+        html2pdf().set({
+          margin:[0.5,0.5],
+          filename:"wycena_kuchni.pdf",
+          image:{type:"jpeg",quality:0.98},
+          html2canvas:{scale:2},
+          jsPDF:{unit:"cm",format:"a4",orientation:"portrait"}
+        })
+        .from(pdfContainer)
+        .save()
+        .then(()=>pdfContainer.classList.add("hidden"));
+      };
+    });
+  </script>
+
+  <!-- html2pdf.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</body>
+</html>
